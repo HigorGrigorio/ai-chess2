@@ -142,10 +142,9 @@ class GameState:
                 else:  # off board
                     break
 
-    
-
     def _get_queen_moves(self, r, c, moves):
-        pass
+        self._get_rook_moves(r, c, moves)
+        self._get_bishop_moves(r, c, moves)
 
     def _get_king_moves(self, r, c, moves):
         pass
