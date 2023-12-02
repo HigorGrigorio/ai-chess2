@@ -17,7 +17,7 @@ class GameState:
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', 'bp', '--', '--', '--', '--'],
-            ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+            ['wp', 'wp', 'wp', 'wp', '--', 'wp', 'wp', '--'],
             ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
         ]
 
@@ -61,6 +61,11 @@ class GameState:
                     piece = self.board[r][c][1]
                     if piece == 'p':
                         self._get_pawn_moves(r, c, moves)
+                    elif piece == 'R':
+                        self._get_rook_moves(r, c, moves)
+                    elif piece == 'N':
+                        self._get_knight_moves(r, c, moves)
+
         return moves
 
     def _get_pawn_moves(self, r, c, moves):
@@ -107,7 +112,16 @@ class GameState:
                     break
 
     def _get_knight_moves(self, r, c, moves):
-        pass
+        possible_moves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2),
+                          (1, -2), (1, 2), (2, -1), (2, 1))
+        ally_color = 'w' if self.white_to_move else 'b'
+        for m in possible_moves:
+            end_row = r + m[0]
+            end_col = c + m[1]
+            if 0 <= end_row < 8 and 0 <= end_col < 8:  # on board
+                end_piece = self.board[end_row][end_col]
+                if end_piece[0] != ally_color:  # not an ally piece (empty or enemy piece)
+                    moves.append(Move((r, c), (end_row, end_col), self.board))
 
     def _get_bishop_moves(self, r, c, moves):
         pass
