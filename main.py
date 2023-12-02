@@ -67,6 +67,7 @@ def main():
                     gs.undo_move()
                     sq_selected = ()
                     player_clicks = []
+                    move_made = True
 
         if move_made:
             valid_moves = gs.get_valid_moves()
