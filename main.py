@@ -59,7 +59,6 @@ def main():
                     if move in valid_moves:
                         gs.make_move(move)
                         move_made = True
-                    gs.make_move(move)
                     sq_selected = ()
                     player_clicks = []
 

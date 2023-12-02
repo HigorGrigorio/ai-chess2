@@ -16,7 +16,7 @@ class GameState:
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
-            ['--', '--', '--', '--', '--', '--', '--', '--'],
+            ['--', '--', '--', 'bp', '--', '--', '--', '--'],
             ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
             ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
         ]
@@ -28,6 +28,13 @@ class GameState:
         # the move_log variable is a list of Movement objects that
         # represents the history of the game
         self.move_log = []
+
+        self.move_functions = {'p': self._get_pawn_moves,
+                               'R': self._get_rook_moves,
+                               'N': self._get_knight_moves,
+                               'B': self._get_bishop_moves,
+                               'Q': self._get_queen_moves,
+                               'K': self._get_king_moves}
 
     def make_move(self, move):
         self.board[move.start_row][move.start_col] = '--'
@@ -80,6 +87,20 @@ class GameState:
                 if self.board[r + 1][c + 1][0] == 'w':
                     moves.append(Move((r, c), (r + 1, c + 1), self.board))
 
+    def _get_rook_moves(self, r, c, moves):
+        pass
+
+    def _get_knight_moves(self, r, c, moves):
+        pass
+
+    def _get_bishop_moves(self, r, c, moves):
+        pass
+
+    def _get_queen_moves(self, r, c, moves):
+        pass
+
+    def _get_king_moves(self, r, c, moves):
+        pass
 
 class Move:
     rank_to_row = {"1": 7, "2": 6, "3": 5, "4": 4,
