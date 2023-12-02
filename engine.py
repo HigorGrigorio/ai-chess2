@@ -88,7 +88,23 @@ class GameState:
                     moves.append(Move((r, c), (r + 1, c + 1), self.board))
 
     def _get_rook_moves(self, r, c, moves):
-        pass
+        directions = ((-1, 0), (0, -1), (1, 0), (0, 1))
+        enemy_color = 'b' if self.white_to_move else 'w'
+        for d in directions:
+            for i in range(1, 8):
+                end_row = r + d[0] * i
+                end_col = c + d[1] * i
+                if 0 <= end_row < 8 and 0 <= end_col < 8:
+                    end_piece = self.board[end_row][end_col]
+                    if end_piece == '--':  # empty space valid
+                        moves.append(Move((r, c), (end_row, end_col), self.board))
+                    elif end_piece[0] == enemy_color:  # enemy piece valid
+                        moves.append(Move((r, c), (end_row, end_col), self.board))
+                        break
+                    else:  # friendly piece
+                        break
+                else:  # off board
+                    break
 
     def _get_knight_moves(self, r, c, moves):
         pass
@@ -101,6 +117,7 @@ class GameState:
 
     def _get_king_moves(self, r, c, moves):
         pass
+
 
 class Move:
     rank_to_row = {"1": 7, "2": 6, "3": 5, "4": 4,
