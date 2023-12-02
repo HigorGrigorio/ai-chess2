@@ -55,7 +55,17 @@ def main():
                     player_clicks.append(sq_selected)
 
                 if len(player_clicks) == 2:  # after 2nd click
-                    move = engine.Move(player_clicks[0], player_clicks[1], gs.board)
+
+                    possible_pawn_promotion = False
+                    start_row = player_clicks[0][0]
+                    start_col = player_clicks[0][1]
+
+                    if (row == 0 and gs.white_to_move and gs.board[start_row][start_col][1] == 'p') or \
+                            (row == 7 and not gs.white_to_move and gs.board[start_row][start_col][1] == 'p'):
+                        possible_pawn_promotion = True
+
+                    move = engine.Move(player_clicks[0], player_clicks[1], gs.board,
+                                       is_pawn_promotion=possible_pawn_promotion)
 
                     if move.is_pawn_promotion:
                         promotion = draw_pawn_promotion(screen, gs)

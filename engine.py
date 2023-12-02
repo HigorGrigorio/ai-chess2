@@ -15,7 +15,7 @@ class GameState:
         # B for bishop, Q for queen, K for king and P for pawn).
         self.board = [
             ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
-            ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+            ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'wp', 'bp'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
@@ -60,8 +60,6 @@ class GameState:
 
         # pawn promotion
         if move.is_pawn_promotion:
-            print("PROMOTION")
-            print(move.pawn_promotion_piece)
             self.board[move.end_row][move.end_col] = move.piece_moved[0] + move.pawn_promotion_piece
 
         if move.is_en_passant_move:
@@ -254,57 +252,69 @@ class GameState:
                 self.pins.remove(self.pins[i])
                 break
 
+        pawn_promotion = False
+
         def _append_move(move):
             # consider pawn promotion, if not a pawn promotion, just append the move
             # if pawn promotion, append 4 moves promoting to each piece type
-            if move.is_pawn_promotion:
+            if pawn_promotion:
                 for promotion in self.get_possible_pawn_promotions():
-                    new_move = Move((r, c), (move.end_row, move.end_col), self.board)
+                    new_move = Move((r, c), (move.end_row, move.end_col), self.board, is_pawn_promotion=True)
                     new_move.pawn_promotion_piece = promotion
                     moves.append(new_move)
             else:
                 moves.append(move)
 
         if self.white_to_move:  # white pawn moves
-            if self.board[r - 1][c] == '--':  # 1 square pawn advance
-                if not piece_pinned or pin_direction == (-1, 0):
-                    _append_move(Move((r, c), (r - 1, c), self.board))
-                    if r == 6 and self.board[r - 2][c] == '--':
-                        _append_move(Move((r, c), (r - 2, c), self.board))
-
-            # captures
-            if c - 1 >= 0:  # capture to the left
-                if not piece_pinned or pin_direction == (-1, -1):
-                    if self.board[r - 1][c - 1][0] == 'b':
-                        _append_move(Move((r, c), (r - 1, c - 1), self.board))
-                    elif (r - 1, c - 1) == self.en_passant_possible:
-                        moves.append(Move((r, c), (r - 1, c - 1), self.board, is_en_passant_move=True))
-            if c + 1 <= 7:  # capture to the right
-                if not piece_pinned or pin_direction == (-1, 1):
-                    if self.board[r - 1][c + 1][0] == 'b':
-                        _append_move(Move((r, c), (r - 1, c + 1), self.board))
-                    elif (r - 1, c + 1) == self.en_passant_possible:
-                        moves.append(Move((r, c), (r - 1, c + 1), self.board, is_en_passant_move=True))
+            move_amount = -1
+            start_row = 6
+            enemy_color = 'b'
+            back_row = 0
         else:  # black pawn moves
-            if self.board[r + 1][c] == '--':  # 1 square pawn advance
-                if not piece_pinned or pin_direction == (1, 0):
-                    _append_move(Move((r, c), (r + 1, c), self.board))
-                    if r == 1 and self.board[r + 2][c] == '--':
-                        _append_move(Move((r, c), (r + 2, c), self.board))
+            move_amount = 1
+            start_row = 1
+            enemy_color = 'w'
+            back_row = 7
 
-            # captures
-            if c - 1 >= 0:  # capture to the left
-                if not piece_pinned or pin_direction == (1, -1):
-                    if self.board[r + 1][c - 1][0] == 'w':
-                        _append_move(Move((r, c), (r + 1, c - 1), self.board))
-                    elif (r + 1, c - 1) == self.en_passant_possible:
-                        moves.append(Move((r, c), (r + 1, c - 1), self.board, is_en_passant_move=True))
-            if c + 1 <= 7:  # capture to the right
-                if not piece_pinned or pin_direction == (1, 1):
-                    if self.board[r + 1][c + 1][0] == 'w':
-                        _append_move(Move((r, c), (r + 1, c + 1), self.board))
-                    elif (r + 1, c + 1) == self.en_passant_possible:
-                        moves.append(Move((r, c), (r + 1, c + 1), self.board, is_en_passant_move=True))
+        if self.board[r + move_amount][c] == '--':  # 1 square pawn advance
+            if not piece_pinned or pin_direction == (move_amount, 0):
+                if r + move_amount == back_row:  # if piece gets to back row, it's a promotion
+                    pawn_promotion = True
+                _append_move(Move((r, c), (r + move_amount, c), self.board))
+                if r == start_row and self.board[r + 2 * move_amount][c] == '--':
+                    _append_move(Move((r, c), (r + 2 * move_amount, c), self.board))
+        if c - 1 >= 0:
+            if not piece_pinned or pin_direction == (move_amount, -1):
+                if self.board[r + move_amount][c - 1][0] == enemy_color:
+                    if r + move_amount == back_row:
+                        pawn_promotion = True
+                    _append_move(Move((r, c), (r + move_amount, c - 1), self.board))
+                elif (r + move_amount, c - 1) == self.en_passant_possible:
+                    attacking_piece = blocking_piece = False
+                    if r == 3:
+                        attacking_piece = self.board[r][c - 1] == 'wp'
+                        blocking_piece = self.board[r - 1][c - 1] == 'wp'
+                    elif r == 4:
+                        attacking_piece = self.board[r][c - 1] == 'bp'
+                        blocking_piece = self.board[r + 1][c - 1] == 'bp'
+                    if attacking_piece and blocking_piece:
+                        moves.append(Move((r, c), (r + move_amount, c - 1), self.board, is_en_passant_move=True))
+        if c + 1 <= 7:
+            if not piece_pinned or pin_direction == (move_amount, 1):
+                if self.board[r + move_amount][c + 1][0] == enemy_color:
+                    if r + move_amount == back_row:
+                        pawn_promotion = True
+                    _append_move(Move((r, c), (r + move_amount, c + 1), self.board))
+                elif (r + move_amount, c + 1) == self.en_passant_possible:
+                    attacking_piece = blocking_piece = False
+                    if r == 3:
+                        attacking_piece = self.board[r][c + 1] == 'wp'
+                        blocking_piece = self.board[r - 1][c + 1] == 'wp'
+                    elif r == 4:
+                        attacking_piece = self.board[r][c + 1] == 'bp'
+                        blocking_piece = self.board[r + 1][c + 1] == 'bp'
+                    if attacking_piece and blocking_piece:
+                        moves.append(Move((r, c), (r + move_amount, c + 1), self.board, is_en_passant_move=True))
 
     def _get_rook_moves(self, r, c, moves):
         piece_pinned = False
@@ -430,7 +440,7 @@ class Move:
 
     int_to_promotion = {v: k for k, v in promotion_to_int.items()}
 
-    def __init__(self, start_sq, end_sq, board, is_en_passant_move=False):
+    def __init__(self, start_sq, end_sq, board, is_en_passant_move=False, is_pawn_promotion=False):
         self.start_row = start_sq[0]
         self.start_col = start_sq[1]
         self.end_row = end_sq[0]
@@ -439,8 +449,7 @@ class Move:
         self.piece_captured = board[self.end_row][self.end_col]
 
         self.pawn_promotion_piece = None  # used for pawn promotion
-        self.is_pawn_promotion = (self.piece_moved == 'wp' and self.end_row == 0) or (
-                self.piece_moved == 'bp' and self.end_row == 7)
+        self.is_pawn_promotion = is_pawn_promotion
 
         self.is_en_passant_move = is_en_passant_move
 
@@ -449,7 +458,7 @@ class Move:
 
     @property
     def move_id(self):
-        return self.promotion_to_int[self.pawn_promotion_piece] + \
+        return self.promotion_to_int[self.pawn_promotion_piece] * 10000 + \
             self.start_row * 1000 + \
             self.start_col * 100 + \
             self.end_row * 10 + \
