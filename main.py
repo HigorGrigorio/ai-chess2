@@ -4,7 +4,7 @@
 
 import pygame as pg
 
-from engine import GameState
+import engine
 
 HEIGHT = 512
 WIDTH = 512
@@ -30,7 +30,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     clock = pg.time.Clock()
     screen.fill(COLORS['light'])
-    gs = GameState()
+    gs = engine.GameState()
     load_images()
     running = True
     sq_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))
@@ -52,7 +52,9 @@ def main():
                     player_clicks.append(sq_selected)
 
                 if len(player_clicks) == 2:  # after 2nd click
-                    move = gs.board.get_move(player_clicks[0], player_clicks[1])
+                    move = engine.Move(player_clicks[0], player_clicks[1], gs.board)
+                    print(move.get_chess_notation())
+                    gs.make_move(move)
                     sq_selected = ()
                     player_clicks = []
 
