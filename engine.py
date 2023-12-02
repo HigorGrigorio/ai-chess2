@@ -12,7 +12,7 @@ class GameState:
         # B for bishop, Q for queen, K for king and P for pawn).
         self.board = [
             ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
-            ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+            ['bp', 'bp', 'bp', 'bp', 'wp', 'bp', 'bp', 'bp'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
@@ -53,6 +53,12 @@ class GameState:
             self.white_king_location = (move.end_row, move.end_col)
         elif move.piece_moved == 'bK':
             self.black_king_location = (move.end_row, move.end_col)
+
+        # pawn promotion
+        if move.is_pawn_promotion:
+            print("PROMOTION")
+            print(move.pawn_promotion_piece)
+            self.board[move.end_row][move.end_col] = move.piece_moved[0] + move.pawn_promotion_piece
 
     def undo_move(self):
         if len(self.move_log) != 0:
@@ -203,6 +209,9 @@ class GameState:
 
         return moves
 
+    def _get_possible_pawn_promotions(self):
+        return ['Q', 'R', 'B', 'N']
+
     def _get_pawn_moves(self, r, c, moves):
         piece_pinned = False
         pin_direction = ()
@@ -213,38 +222,49 @@ class GameState:
                 self.pins.remove(self.pins[i])
                 break
 
+        def _append_move(move):
+            # consider pawn promotion, if not a pawn promotion, just append the move
+            # if pawn promotion, append 4 moves promoting to each piece type
+            if move.is_pawn_promotion:
+                for promotion in self._get_possible_pawn_promotions():
+                    new_move = Move((r, c), (move.end_row, move.end_col), self.board)
+                    new_move.pawn_promotion_piece = promotion
+                    moves.append(new_move)
+            else:
+                moves.append(move)
+
         if self.white_to_move:  # white pawn moves
             if self.board[r - 1][c] == '--':  # 1 square pawn advance
                 if not piece_pinned or pin_direction == (-1, 0):
-                    moves.append(Move((r, c), (r - 1, c), self.board))
+                    _append_move(Move((r, c), (r - 1, c), self.board))
                     if r == 6 and self.board[r - 2][c] == '--':
-                        moves.append(Move((r, c), (r - 2, c), self.board))
+                        _append_move(Move((r, c), (r - 2, c), self.board))
 
             # captures
             if c - 1 >= 0:  # capture to the left
                 if not piece_pinned or pin_direction == (-1, -1):
                     if self.board[r - 1][c - 1][0] == 'b':
-                        moves.append(Move((r, c), (r - 1, c - 1), self.board))
+                        _append_move(Move((r, c), (r - 1, c - 1), self.board))
             if c + 1 <= 7:  # capture to the right
                 if not piece_pinned or pin_direction == (-1, 1):
                     if self.board[r - 1][c + 1][0] == 'b':
-                        moves.append(Move((r, c), (r - 1, c + 1), self.board))
+                        _append_move(Move((r, c), (r - 1, c + 1), self.board))
         else:  # black pawn moves
             if self.board[r + 1][c] == '--':  # 1 square pawn advance
                 if not piece_pinned or pin_direction == (1, 0):
-                    moves.append(Move((r, c), (r + 1, c), self.board))
+                    _append_move(Move((r, c), (r + 1, c), self.board))
                     if r == 1 and self.board[r + 2][c] == '--':
-                        moves.append(Move((r, c), (r + 2, c), self.board))
+                        _append_move(Move((r, c), (r + 2, c), self.board))
 
             # captures
             if c - 1 >= 0:  # capture to the left
                 if not piece_pinned or pin_direction == (1, -1):
                     if self.board[r + 1][c - 1][0] == 'w':
-                        moves.append(Move((r, c), (r + 1, c - 1), self.board))
+                        _append_move(Move((r, c), (r + 1, c - 1), self.board))
             if c + 1 <= 7:  # capture to the right
                 if not piece_pinned or pin_direction == (1, 1):
                     if self.board[r + 1][c + 1][0] == 'w':
-                        moves.append(Move((r, c), (r + 1, c + 1), self.board))
+                        _append_move(Move((r, c), (r + 1, c + 1), self.board))
 
     def _get_rook_moves(self, r, c, moves):
         piece_pinned = False
@@ -366,6 +386,10 @@ class Move:
 
     col_to_file = {v: k for k, v in file_to_col.items()}
 
+    promotion_to_int = {'Q': 1, 'R': 2, 'B': 3, 'N': 4, None: 0}
+
+    int_to_promotion = {v: k for k, v in promotion_to_int.items()}
+
     def __init__(self, start_sq, end_sq, board):
         self.start_row = start_sq[0]
         self.start_col = start_sq[1]
@@ -374,7 +398,18 @@ class Move:
         self.piece_moved = board[self.start_row][self.start_col]
         self.piece_captured = board[self.end_row][self.end_col]
 
-        self.move_id = self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col
+        self.is_pawn_promotion = (self.piece_moved == 'wp' and self.end_row == 0) or (
+                self.piece_moved == 'bp' and self.end_row == 7)
+
+        self.pawn_promotion_piece = None
+
+    @property
+    def move_id(self):
+        return self.promotion_to_int[self.pawn_promotion_piece] + \
+            self.start_row * 1000 + \
+            self.start_col * 100 + \
+            self.end_row * 10 + \
+            self.end_col
 
     def get_chess_notation(self):
         return self.get_rank_file(self.start_row, self.start_col) + self.get_rank_file(self.end_row, self.end_col)
