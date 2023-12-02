@@ -15,7 +15,14 @@ MAX_FPS = 15
 IMAGES = {}
 COLORS = {
     'dark': pg.Color(118, 150, 86),
-    'light': pg.Color(238, 238, 210)
+    'light': pg.Color(238, 238, 210),
+    'highlight': pg.Color(255, 255, 0),
+    'capture': pg.Color(255, 0, 0),
+    'promotion': pg.Color(255, 0, 255),
+    # gold
+    'check': pg.Color(255, 215, 0),
+    'focus': pg.Color(0, 0, 255),
+    'castle': pg.Color(0, 255, 255)
 }
 
 
@@ -38,11 +45,13 @@ def main():
     running = True
     sq_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))
     player_clicks = []  # keep track of player clicks (two tuples: [(6, 4), (4, 4)])
+    animate = False
+    game_over = False
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
-            if event.type == pg.MOUSEBUTTONDOWN:
+            if event.type == pg.MOUSEBUTTONDOWN and not game_over:
                 location = pg.mouse.get_pos()
                 col = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
@@ -78,25 +87,90 @@ def main():
                         if move == valid_moves[i]:
                             gs.make_move(valid_moves[i])
                             move_made = True
-                    sq_selected = ()
-                    player_clicks = []
+                            animate = True
+                            sq_selected = ()
+                            player_clicks = []
+
+                    if not move_made:
+                        player_clicks = [sq_selected]
 
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_z:
                     gs.undo_move()
                     move_made = True
+                    animate = False
+                if event.key == pg.K_r:
+                    gs = engine.GameState()
+                    valid_moves = gs.get_valid_moves()
+                    sq_selected = ()
+                    player_clicks = []
+                    move_made = False
 
         if move_made:
+            if animate:
+                animate_move(gs.move_log[-1], screen, gs.board, clock)
             valid_moves = gs.get_valid_moves()
             move_made = False
+            animate = False
 
-        draw_game_state(screen, gs)
+        draw_game_state(screen, gs, valid_moves, sq_selected)
+
+        if gs.checkmate:
+            game_over = True
+            draw_text(screen, 'Black wins by checkmate' if gs.white_to_move else 'White wins by checkmate')
+        elif gs.stalemate:
+            game_over = True
+            draw_text(screen, 'Stalemate')
+
         clock.tick(MAX_FPS)
         pg.display.flip()
 
 
-def draw_game_state(screen, gs):
+def draw_text(screen, text):
+    font = pg.font.SysFont('Arial', 32, True, False)
+    text_object = font.render(text, 0, pg.Color('Black'))
+    text_location = pg.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH / 2 - text_object.get_width() / 2,
+                                                      HEIGHT / 2 - text_object.get_height() / 2)
+    screen.blit(text_object, text_location)
+    text_object = font.render(text, 0, pg.Color('Gray'))
+    screen.blit(text_object, text_location.move(2, 2))
+
+
+def highlight_squares(screen, gs, valid_moves, sq_selected):
+    if sq_selected != ():
+        r, c = sq_selected
+        if gs.board[r][c][0] == ('w' if gs.white_to_move else 'b'):  # sq_selected is a piece that can be moved
+            # highlight selected square
+            s = pg.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(100)  # transparency value -> 0 transparent; 255 opaque
+            s.fill(COLORS['highlight'])
+            screen.blit(s, (c * SQ_SIZE, r * SQ_SIZE))
+
+            for move in valid_moves:
+                if move.start_row == r and move.start_col == c:
+                    if move.piece_captured != '--':
+                        if move.piece_captured[1] == 'K':
+                            # highlight check moves from that square
+                            s.fill(COLORS['check'])
+                        else:
+                            # highlight capture moves from that square
+                            s.fill(COLORS['capture'])
+                    elif move.is_pawn_promotion:
+                        # highlight promotion moves from that square
+                        s.fill(COLORS['promotion'])
+                    elif move.is_castle_move:
+                        # highlight castle moves from that square
+                        s.fill(COLORS['castle'])
+                    else:
+                        # highlight moves from that square
+                        s.fill(COLORS['highlight'])
+
+                    screen.blit(s, (SQ_SIZE * move.end_col, SQ_SIZE * move.end_row))
+
+
+def draw_game_state(screen, gs, valid_moves, sq_selected):
     draw_board(screen)
+    highlight_squares(screen, gs, valid_moves, sq_selected)
     draw_pieces(screen, gs.board)
 
 
@@ -114,6 +188,34 @@ def draw_pieces(screen, board):
             piece = board[r][c]
             if piece != '--':
                 screen.blit(IMAGES[piece], pg.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
+
+def animate_move(move, screen, board, clock):
+    if move.is_castle_move:
+        return
+
+    global COLORS
+    dR = move.end_row - move.start_row
+    dC = move.end_col - move.start_col
+    frames_per_square = 10  # frames to move one square
+    frame_count = (abs(dR) + abs(dC)) * frames_per_square
+    piece = board[move.end_row][move.end_col]
+
+    for frame in range(frame_count + 1):
+        r, c = (move.start_row + dR * frame / frame_count, move.start_col + dC * frame / frame_count)
+        draw_board(screen)
+        draw_pieces(screen, board)
+        # erase the piece moved from its ending square
+        color = COLORS['light'] if (move.end_row + move.end_col) % 2 == 0 else COLORS['dark']
+        end_square = pg.Rect(move.end_col * SQ_SIZE, move.end_row * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+        pg.draw.rect(screen, color, end_square)
+        # draw captured piece onto rectangle
+        if move.piece_captured != '--':
+            screen.blit(IMAGES[move.piece_captured], end_square)
+        # draw moving piece
+        screen.blit(IMAGES[piece], pg.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+        pg.display.flip()
+        clock.tick(60)
 
 
 def draw_pawn_promotion(screen, gs):

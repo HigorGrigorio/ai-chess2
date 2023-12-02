@@ -14,14 +14,14 @@ class GameState:
         # represents the type of the peace (R for rook, N for knight,
         # B for bishop, Q for queen, K for king and P for pawn).
         self.board = [
-            ['bR', 'bN', 'bB', 'bQ', 'bK', '--', '--', 'bR'],
+            ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
             ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
-            ['wR', 'wN', 'wB', 'wQ', 'wK', '--', '--', 'wR']
+            ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
         ]
 
         # the white_to_move variable is a boolean that indicates if
@@ -41,7 +41,7 @@ class GameState:
 
         self.white_king_location = (7, 4)
         self.black_king_location = (0, 4)
-        self.in_check = self.in_stalemate = False
+        self.in_check = self.stalemate = self.checkmate = False
         self.pins = []
         self.checks = []
         self.en_passant_possible = ()  # coordinates for the square where en passant capture is possible
@@ -157,7 +157,7 @@ class GameState:
         else:
             king_row, king_col = self.black_king_location
 
-        if self.in_check:
+        if self.in_checkmate():
             if len(self.checks) == 1:  # only 1 check, block check or move king
                 moves = self._get_all_possible_moves()
                 # to block a check you must move a piece into one of the squares between the enemy piece and king
@@ -188,10 +188,10 @@ class GameState:
         self._get_castle_moves(king_row, king_col, moves)
 
         if len(moves) == 0:
-            if self.in_checkmate():
-                self.in_check = True
+            if self.in_check:
+                self.checkmate = True
             else:
-                self.in_stalemate = True
+                self.stalemate = True
 
         self.en_passant_possible = temp_en_passant_possible
         self.current_castling_rights = temp_castle_rights
