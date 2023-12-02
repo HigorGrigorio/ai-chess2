@@ -31,6 +31,8 @@ def main():
     clock = pg.time.Clock()
     screen.fill(COLORS['light'])
     gs = engine.GameState()
+    valid_moves = gs.get_valid_moves()
+    move_made = False # flag variable for when a move is made
     load_images()
     running = True
     sq_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))
@@ -54,9 +56,22 @@ def main():
                 if len(player_clicks) == 2:  # after 2nd click
                     move = engine.Move(player_clicks[0], player_clicks[1], gs.board)
                     print(move.get_chess_notation())
+                    if move in valid_moves:
+                        gs.make_move(move)
+                        move_made = True
                     gs.make_move(move)
                     sq_selected = ()
                     player_clicks = []
+
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_z:
+                    gs.undo_move()
+                    sq_selected = ()
+                    player_clicks = []
+
+        if move_made:
+            valid_moves = gs.get_valid_moves()
+            move_made = False
 
         draw_game_state(screen, gs)
         clock.tick(MAX_FPS)

@@ -35,6 +35,52 @@ class GameState:
         self.move_log.append(move)
         self.white_to_move = not self.white_to_move
 
+    def undo_move(self):
+        if len(self.move_log) != 0:
+            move = self.move_log.pop()
+            self.board[move.start_row][move.start_col] = move.piece_moved
+            self.board[move.end_row][move.end_col] = move.piece_captured
+            self.white_to_move = not self.white_to_move
+
+    def get_valid_moves(self):
+        return self.get_all_possible_moves()
+
+    def get_all_possible_moves(self):
+        moves = []
+        for r in range(len(self.board)):
+            for c in range(len(self.board[r])):
+                turn = self.board[r][c][0]
+                if (turn == 'w' and self.white_to_move) or (turn == 'b' and not self.white_to_move):
+                    piece = self.board[r][c][1]
+                    if piece == 'p':
+                        self._get_pawn_moves(r, c, moves)
+        return moves
+
+    def _get_pawn_moves(self, r, c, moves):
+        if self.white_to_move:
+            if self.board[r - 1][c] == '--':
+                moves.append(Move((r, c), (r - 1, c), self.board))
+                if r == 6 and self.board[r - 2][c] == '--':
+                    moves.append(Move((r, c), (r - 2, c), self.board))
+            if c - 1 >= 0:
+                if self.board[r - 1][c - 1][0] == 'b':
+                    moves.append(Move((r, c), (r - 1, c - 1), self.board))
+            if c + 1 <= 7:
+                if self.board[r - 1][c + 1][0] == 'b':
+                    moves.append(Move((r, c), (r - 1, c + 1), self.board))
+        else:
+            if self.board[r + 1][c] == '--':
+                moves.append(Move((r, c), (r + 1, c), self.board))
+                if r == 1 and self.board[r + 2][c] == '--':
+                    moves.append(Move((r, c), (r + 2, c), self.board))
+            if c - 1 >= 0:
+                if self.board[r + 1][c - 1][0] == 'w':
+                    moves.append(Move((r, c), (r + 1, c - 1), self.board))
+            if c + 1 <= 7:
+                if self.board[r + 1][c + 1][0] == 'w':
+                    moves.append(Move((r, c), (r + 1, c + 1), self.board))
+
+
 class Move:
     rank_to_row = {"1": 7, "2": 6, "3": 5, "4": 4,
                    "5": 3, "6": 2, "7": 1, "8": 0}
