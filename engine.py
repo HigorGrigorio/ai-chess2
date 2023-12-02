@@ -59,12 +59,7 @@ class GameState:
                 turn = self.board[r][c][0]
                 if (turn == 'w' and self.white_to_move) or (turn == 'b' and not self.white_to_move):
                     piece = self.board[r][c][1]
-                    if piece == 'p':
-                        self._get_pawn_moves(r, c, moves)
-                    elif piece == 'R':
-                        self._get_rook_moves(r, c, moves)
-                    elif piece == 'N':
-                        self._get_knight_moves(r, c, moves)
+                    self.move_functions[piece](r, c, moves)
 
         return moves
 
