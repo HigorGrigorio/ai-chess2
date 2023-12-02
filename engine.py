@@ -1,6 +1,9 @@
 # -----------------------------------------------------------------------------
 # (C) 2023 Higor Grigorio (higorgrigorio@gmail.com)  (MIT License)
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# (C) 2023 Higor Grigorio (higorgrigorio@gmail.com)  (MIT License)
+# -----------------------------------------------------------------------------
 
 class GameState:
     def __init__(self):
@@ -12,7 +15,7 @@ class GameState:
         # B for bishop, Q for queen, K for king and P for pawn).
         self.board = [
             ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
-            ['bp', 'bp', 'bp', 'bp', 'wp', 'bp', 'bp', 'bp'],
+            ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
@@ -41,6 +44,7 @@ class GameState:
         self.in_check = self.in_stalemate = False
         self.pins = []
         self.checks = []
+        self.en_passant_possible = ()  # coordinates for the square where en passant capture is possible
 
     def make_move(self, move):
         self.board[move.start_row][move.start_col] = '--'
@@ -60,6 +64,15 @@ class GameState:
             print(move.pawn_promotion_piece)
             self.board[move.end_row][move.end_col] = move.piece_moved[0] + move.pawn_promotion_piece
 
+        if move.is_en_passant_move:
+            self.board[move.start_row][move.end_col] = '--'  # capturing the pawn
+
+        # en passant
+        if move.piece_moved[1] == 'p' and abs(move.start_row - move.end_row) == 2:  # only on 2 square pawn advances
+            self.en_passant_possible = ((move.start_row + move.end_row) // 2, move.start_col)
+        else:
+            self.en_passant_possible = ()
+
     def undo_move(self):
         if len(self.move_log) != 0:
             move = self.move_log.pop()
@@ -73,7 +86,18 @@ class GameState:
             elif move.piece_moved == 'bK':
                 self.black_king_location = (move.start_row, move.start_col)
 
+            # undo en passant
+            if move.is_en_passant_move:
+                self.board[move.end_row][move.end_col] = '--'
+                self.board[move.start_row][move.end_col] = move.piece_captured
+                self.en_passant_possible = (move.end_row, move.end_col)
+
+            # undo 2 square pawn advance
+            if move.piece_moved[1] == 'p' and abs(move.start_row - move.end_row) == 2:
+                self.en_passant_possible = ()
+
     def get_valid_moves(self):
+        temp_en_passant_possible = self.en_passant_possible
         moves = []
         self.in_check, self.pins, self.checks = self._check_for_pins_and_checks()
         if self.white_to_move:
@@ -108,6 +132,14 @@ class GameState:
                 self._get_king_moves(king_row, king_col, moves)
         else:  # not in check so all moves are fine
             moves = self._get_all_possible_moves()
+
+        if len(moves) == 0:
+            if self.in_checkmate():
+                self.in_check = True
+            else:
+                self.in_stalemate = True
+
+        self.en_passant_possible = temp_en_passant_possible
 
         return moves
 
@@ -181,7 +213,7 @@ class GameState:
 
         return in_check, pins, checks
 
-    def in_check(self):
+    def in_checkmate(self):
         if self.white_to_move:
             return self._is_under_attack(self.white_king_location[0], self.white_king_location[1])
         else:
@@ -245,10 +277,14 @@ class GameState:
                 if not piece_pinned or pin_direction == (-1, -1):
                     if self.board[r - 1][c - 1][0] == 'b':
                         _append_move(Move((r, c), (r - 1, c - 1), self.board))
+                    elif (r - 1, c - 1) == self.en_passant_possible:
+                        moves.append(Move((r, c), (r - 1, c - 1), self.board, is_en_passant_move=True))
             if c + 1 <= 7:  # capture to the right
                 if not piece_pinned or pin_direction == (-1, 1):
                     if self.board[r - 1][c + 1][0] == 'b':
                         _append_move(Move((r, c), (r - 1, c + 1), self.board))
+                    elif (r - 1, c + 1) == self.en_passant_possible:
+                        moves.append(Move((r, c), (r - 1, c + 1), self.board, is_en_passant_move=True))
         else:  # black pawn moves
             if self.board[r + 1][c] == '--':  # 1 square pawn advance
                 if not piece_pinned or pin_direction == (1, 0):
@@ -261,10 +297,14 @@ class GameState:
                 if not piece_pinned or pin_direction == (1, -1):
                     if self.board[r + 1][c - 1][0] == 'w':
                         _append_move(Move((r, c), (r + 1, c - 1), self.board))
+                    elif (r + 1, c - 1) == self.en_passant_possible:
+                        moves.append(Move((r, c), (r + 1, c - 1), self.board, is_en_passant_move=True))
             if c + 1 <= 7:  # capture to the right
                 if not piece_pinned or pin_direction == (1, 1):
                     if self.board[r + 1][c + 1][0] == 'w':
                         _append_move(Move((r, c), (r + 1, c + 1), self.board))
+                    elif (r + 1, c + 1) == self.en_passant_possible:
+                        moves.append(Move((r, c), (r + 1, c + 1), self.board, is_en_passant_move=True))
 
     def _get_rook_moves(self, r, c, moves):
         piece_pinned = False
@@ -390,7 +430,7 @@ class Move:
 
     int_to_promotion = {v: k for k, v in promotion_to_int.items()}
 
-    def __init__(self, start_sq, end_sq, board):
+    def __init__(self, start_sq, end_sq, board, is_en_passant_move=False):
         self.start_row = start_sq[0]
         self.start_col = start_sq[1]
         self.end_row = end_sq[0]
@@ -398,10 +438,14 @@ class Move:
         self.piece_moved = board[self.start_row][self.start_col]
         self.piece_captured = board[self.end_row][self.end_col]
 
+        self.pawn_promotion_piece = None  # used for pawn promotion
         self.is_pawn_promotion = (self.piece_moved == 'wp' and self.end_row == 0) or (
                 self.piece_moved == 'bp' and self.end_row == 7)
 
-        self.pawn_promotion_piece = None
+        self.is_en_passant_move = is_en_passant_move
+
+        if self.is_en_passant_move:
+            self.piece_captured = 'wp' if self.piece_moved == 'bp' else 'bp'
 
     @property
     def move_id(self):
