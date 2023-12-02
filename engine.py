@@ -209,7 +209,7 @@ class GameState:
 
         return moves
 
-    def _get_possible_pawn_promotions(self):
+    def get_possible_pawn_promotions(self):
         return ['Q', 'R', 'B', 'N']
 
     def _get_pawn_moves(self, r, c, moves):
@@ -226,7 +226,7 @@ class GameState:
             # consider pawn promotion, if not a pawn promotion, just append the move
             # if pawn promotion, append 4 moves promoting to each piece type
             if move.is_pawn_promotion:
-                for promotion in self._get_possible_pawn_promotions():
+                for promotion in self.get_possible_pawn_promotions():
                     new_move = Move((r, c), (move.end_row, move.end_col), self.board)
                     new_move.pawn_promotion_piece = promotion
                     moves.append(new_move)

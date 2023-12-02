@@ -107,7 +107,7 @@ def draw_pieces(screen, board):
 
 
 def draw_pawn_promotion(screen, gs):
-    possible_promotions = ['Q', 'R', 'B', 'N']
+    possible_promotions = gs.get_possible_pawn_promotions()
 
     # draw a rectangle on center of the screen with the possible promotions, each
     # one with a different color, if odd black, if even white
@@ -163,11 +163,11 @@ def draw_pawn_promotion(screen, gs):
                     selected_promotion = possible_promotions[col]
                     print(selected_promotion)
                     break
-            if event.type == pg.KEYDOWN: # if the user presses the z key, cancel the promotion
+            if event.type == pg.KEYDOWN:  # if the user presses the z key, cancel the promotion
                 if event.key == pg.K_z:
                     return None
 
-            if event.type == pg.QUIT: # if the user closes the window, quit the game
+            if event.type == pg.QUIT:  # if the user closes the window, quit the game
                 pg.quit()
                 exit()
 
