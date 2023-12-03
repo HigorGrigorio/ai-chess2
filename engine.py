@@ -65,7 +65,7 @@ class GameState:
         if move.is_pawn_promotion:
             self.board[move.end_row][move.end_col] = move.piece_moved[0] + move.pawn_promotion_piece
 
-        if move.is_en_passant_move:
+        if move.is_enpassant_move:
             self.board[move.start_row][move.end_col] = '--'  # capturing the pawn
 
         # en passant
@@ -123,7 +123,7 @@ class GameState:
                 self.black_king_location = (move.start_row, move.start_col)
 
             # undo en passant
-            if move.is_en_passant_move:
+            if move.is_enpassant_move:
                 self.board[move.end_row][move.end_col] = '--'
                 self.board[move.start_row][move.end_col] = move.piece_captured
                 self.en_passant_possible = (move.end_row, move.end_col)
@@ -143,8 +143,10 @@ class GameState:
 
             # undo castling rights
             self.castle_rights_log.pop()  # get rid of the new castle rights from the move we are undoing
-            self.current_castling_rights = self.castle_rights_log[
-                -1]  # set the current castle rights to the last one in the list
+            # set the current castle rights to the last one in the list
+            self.current_castling_rights = self.castle_rights_log[-1]
+
+            self.checkmate = self.stalemate = False
 
     def get_valid_moves(self):
         temp_en_passant_possible = self.en_passant_possible
@@ -538,9 +540,9 @@ class Move:
         self.pawn_promotion_piece = None  # used for pawn promotion
         self.is_pawn_promotion = is_pawn_promotion
 
-        self.is_en_passant_move = is_en_passant_move
+        self.is_enpassant_move = is_en_passant_move
 
-        if self.is_en_passant_move:
+        if self.is_enpassant_move:
             self.piece_captured = 'wp' if self.piece_moved == 'bp' else 'bp'
 
         self.is_castle_move = is_castle_move

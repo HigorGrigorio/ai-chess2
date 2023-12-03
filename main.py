@@ -4,6 +4,7 @@
 
 import pygame as pg
 
+import ai
 import engine
 
 HEIGHT = 512
@@ -47,52 +48,58 @@ def main():
     player_clicks = []  # keep track of player clicks (two tuples: [(6, 4), (4, 4)])
     animate = False
     game_over = False
+    single_player = True  # if True, the user plays against the computer; if False, the user plays against another user
+    multi_player = False  # if True, the user plays against another user; if False, the user plays against the computer
+
     while running:
+        human_turn = (gs.white_to_move and single_player) or (multi_player and gs.white_to_move)
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
-            if event.type == pg.MOUSEBUTTONDOWN and not game_over:
-                location = pg.mouse.get_pos()
-                col = location[0] // SQ_SIZE
-                row = location[1] // SQ_SIZE
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if not game_over and human_turn:
+                    location = pg.mouse.get_pos()
+                    col = location[0] // SQ_SIZE
+                    row = location[1] // SQ_SIZE
 
-                if sq_selected == (row, col):
-                    sq_selected = ()
-                    player_clicks = []
-                else:
-                    sq_selected = (row, col)
-                    player_clicks.append(sq_selected)
+                    if sq_selected == (row, col):
+                        sq_selected = ()
+                        player_clicks = []
+                    else:
+                        sq_selected = (row, col)
+                        player_clicks.append(sq_selected)
 
-                if len(player_clicks) == 2:  # after 2nd click
+                    if len(player_clicks) == 2:  # after 2nd click
 
-                    possible_pawn_promotion = False
-                    start_row = player_clicks[0][0]
-                    start_col = player_clicks[0][1]
+                        possible_pawn_promotion = False
+                        start_row = player_clicks[0][0]
+                        start_col = player_clicks[0][1]
 
-                    if (row == 0 and gs.white_to_move and gs.board[start_row][start_col][1] == 'p') or \
-                            (row == 7 and not gs.white_to_move and gs.board[start_row][start_col][1] == 'p'):
-                        possible_pawn_promotion = True
+                        if (row == 0 and gs.white_to_move and gs.board[start_row][start_col][1] == 'p') or \
+                                (row == 7 and not gs.white_to_move and gs.board[start_row][start_col][1] == 'p'):
+                            possible_pawn_promotion = True
 
-                    move = engine.Move(player_clicks[0], player_clicks[1], gs.board,
-                                       is_pawn_promotion=possible_pawn_promotion)
+                        move = engine.Move(player_clicks[0], player_clicks[1], gs.board,
+                                           is_pawn_promotion=possible_pawn_promotion)
 
-                    if move.is_pawn_promotion:
-                        promotion = draw_pawn_promotion(screen, gs)
-                        if promotion is not None:  # if the user selects a promotion
-                            move.pawn_promotion_piece = promotion
+                        if move.is_pawn_promotion:
+                            promotion = draw_pawn_promotion(screen, gs)
+                            if promotion is not None:  # if the user selects a promotion
+                                move.pawn_promotion_piece = promotion
 
-                    print(move.get_chess_notation())
+                        print(move.get_chess_notation())
 
-                    for i in range(len(valid_moves)):
-                        if move == valid_moves[i]:
-                            gs.make_move(valid_moves[i])
-                            move_made = True
-                            animate = True
-                            sq_selected = ()
-                            player_clicks = []
+                        for i in range(len(valid_moves)):
+                            if move == valid_moves[i]:
+                                gs.make_move(valid_moves[i])
+                                move_made = True
+                                animate = True
+                                sq_selected = ()
+                                player_clicks = []
 
-                    if not move_made:
-                        player_clicks = [sq_selected]
+                        if not move_made:
+                            player_clicks = [sq_selected]
 
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_z:
@@ -105,6 +112,15 @@ def main():
                     sq_selected = ()
                     player_clicks = []
                     move_made = False
+                    animate = False
+                    game_over = False
+
+        if not game_over and not human_turn:
+            ai_move = ai.smart_move(gs, valid_moves)
+            if ai_move is not None:
+                gs.make_move(ai_move)
+                move_made = True
+                animate = True
 
         if move_made:
             if animate:
