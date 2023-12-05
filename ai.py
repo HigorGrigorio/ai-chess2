@@ -3,14 +3,8 @@
 # -----------------------------------------------------------------------------
 from random import choice
 
-SPECIAL_MOVE = {
-    'is_castle_move': 1,
-    'is_pawn_promotion': 1,
-    'is_enpassant_move': 1
-}
-
 # controls the depth of the search tree
-DEPTH = 3
+DEPTH = 4
 
 KNIGHT_SCORE = [
     [1, 1, 1, 1, 1, 1, 1, 1],
@@ -209,18 +203,18 @@ def _negamax(gs, valid_moves, depth, white_to_move):
     return max_score
 
 
-def ab_negamax(gs, valid_moves, depth, white_to_move, alpha, beta):
+def _ab_negamax(gs, valid_moves, depth, turn_mult, alpha, beta):
     global next_move
 
     if depth == 0:
-        return _eval_material(gs.board)
+        return _eval_material(gs.board) * turn_mult
 
     max_score = -CHECKMATE
 
     for move in valid_moves:
         gs.make_move(move)
         next_moves = gs.get_valid_moves()
-        score = -ab_negamax(gs, next_moves, depth - 1, not white_to_move, -beta, -alpha)
+        score = -_ab_negamax(gs, next_moves, depth - 1, -turn_mult, -beta, -alpha)
         if score > max_score:
             max_score = score
             if depth == DEPTH:
@@ -238,5 +232,5 @@ def ab_negamax(gs, valid_moves, depth, white_to_move, alpha, beta):
 def smart_move(gs, moves, return_queue):
     global next_move
     next_move = None
-    _negamax(gs, moves, DEPTH, gs.white_to_move)
+    _ab_negamax(gs, moves, DEPTH, 1 if gs.white_to_move else -1, -CHECKMATE, CHECKMATE)
     return_queue.put(next_move)

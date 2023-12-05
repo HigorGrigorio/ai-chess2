@@ -329,13 +329,11 @@ class GameState:
             start_row = 6
             enemy_color = 'b'
             back_row = 0
-            king_row, king_col = self.white_king_location
         else:  # black pawn moves
             move_amount = 1
             start_row = 1
             enemy_color = 'w'
             back_row = 7
-            king_row, king_col = self.black_king_location
 
         if self.board[r + move_amount][c] == '--':  # 1 square pawn advance
             if not piece_pinned or pin_direction == (move_amount, 0):
@@ -349,24 +347,7 @@ class GameState:
                 if self.board[r + move_amount][c - 1][0] == enemy_color:
                     if r + move_amount == back_row:
                         pawn_promotion = True
-                        attacking_piece = blocking_piece = False
-                        if king_row == r:
-                            if king_col < c:
-                                # inside range between king and pawn
-                                inside_range = range(king_col + 1, c - 1)
-                                outside_range = range(c + 1, 8)
-                            else:
-                                inside_range = range(king_col - 1, c, -1)
-                                outside_range = range(c - 2, -1, -1)
-                            for i in range(len(self.board)):
-                                if i in inside_range:
-                                    if self.board[r][i] != '--':
-                                        blocking_piece = True
-                                elif i in outside_range:
-                                    if self.board[r][i] != '--':
-                                        attacking_piece = True
-                        if not attacking_piece or blocking_piece:
-                            moves.append(Move((r, c), (r + move_amount, c - 1), self.board, is_en_passant_move=True))
+                    _append_move(Move((r, c), (r + move_amount, c - 1), self.board))
                 elif (r + move_amount, c - 1) == self.en_passant_possible:
                     attacking_piece = blocking_piece = False
                     if r == 3:
