@@ -104,8 +104,14 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_z:
                     gs.undo_move()
+
+                    if not multi_player and single_player:
+                        gs.undo_move()
+
                     move_made = True
                     animate = False
+                    game_over = False
+
                 if event.key == pg.K_r:
                     gs = engine.GameState()
                     valid_moves = gs.get_valid_moves()
