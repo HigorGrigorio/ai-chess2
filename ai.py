@@ -53,7 +53,7 @@ def _eval_board(gs):
     elif gs.stalemate:
         return STALEMATE
 
-    return _eval_material(gs.board) + len(gs.get_valid_moves()) * 0.1
+    return _eval_material(gs.board)
 
 
 global next_move
@@ -109,6 +109,32 @@ def _negamax(gs, valid_moves, depth, white_to_move):
             if depth == DEPTH:
                 next_move = move
         gs.undo_move()
+
+    return max_score
+
+
+def ab_negamax(gs, valid_moves, depth, white_to_move, alpha, beta):
+    global next_move
+
+    if depth == 0:
+        return _eval_board(gs)
+
+    max_score = -CHECKMATE
+
+    for move in valid_moves:
+        gs.make_move(move)
+        next_moves = gs.get_valid_moves()
+        score = -ab_negamax(gs, next_moves, depth - 1, not white_to_move, -beta, -alpha)
+        if score > max_score:
+            max_score = score
+            if depth == DEPTH:
+                next_move = move
+        gs.undo_move()
+
+        if max_score > alpha:
+            alpha = max_score
+        if alpha >= beta:
+            break
 
     return max_score
 
