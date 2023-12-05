@@ -46,7 +46,10 @@ STALEMATE = 0
 
 def _eval_board(gs):
     if gs.checkmate:
-        return CHECKMATE
+        if gs.white_to_move:
+            return -CHECKMATE
+        else:
+            return CHECKMATE
     elif gs.stalemate:
         return STALEMATE
 
