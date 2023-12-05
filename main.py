@@ -2,6 +2,8 @@
 # (C) 2023 Higor Grigorio (higorgrigorio@gmail.com)  (MIT License)
 # -----------------------------------------------------------------------------
 
+from multiprocessing import Process, Queue
+
 import pygame as pg
 
 import ai
@@ -20,7 +22,6 @@ COLORS = {
     'highlight': pg.Color(255, 255, 0),
     'capture': pg.Color(255, 0, 0),
     'promotion': pg.Color(255, 0, 255),
-    # gold
     'check': pg.Color(255, 215, 0),
     'focus': pg.Color(0, 0, 255),
     'castle': pg.Color(0, 255, 255)
@@ -50,7 +51,10 @@ def main():
     game_over = False
     single_player = True  # if True, the user plays against the computer; if False, the user plays against another user
     multi_player = False  # if True, the user plays against another user; if False, the user plays against the computer
-
+    ai_thinking = False
+    ai_move = None
+    process = None
+    return_queue = None
     while running:
         human_turn = (gs.white_to_move and single_player) or (multi_player and gs.white_to_move)
 
@@ -111,6 +115,9 @@ def main():
                     move_made = True
                     animate = False
                     game_over = False
+                    if ai_thinking:
+                        process.terminate()
+                        ai_thinking = False
 
                 if event.key == pg.K_r:
                     gs = engine.GameState()
@@ -122,8 +129,17 @@ def main():
                     game_over = False
 
         if not game_over and not human_turn:
-            ai_move = ai.smart_move(gs, valid_moves)
-            if ai_move is not None:
+            if not ai_thinking:
+                ai_thinking = True
+                return_queue = Queue()
+                process = Process(target=ai.smart_move, args=(gs, valid_moves, return_queue))
+                process.start()
+
+            if not process.is_alive():
+                ai_move = return_queue.get()
+                ai_thinking = False
+                if ai_move is None:
+                    ai_move = ai._random_move(valid_moves)
                 gs.make_move(ai_move)
                 move_made = True
                 animate = True

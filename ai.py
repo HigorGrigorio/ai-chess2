@@ -12,6 +12,98 @@ SPECIAL_MOVE = {
 # controls the depth of the search tree
 DEPTH = 3
 
+KNIGHT_SCORE = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 3, 3, 3, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 3, 3, 3, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1]
+]
+
+BISHOP_SCORE = [
+    [4, 3, 2, 1, 1, 2, 3, 4],
+    [3, 4, 3, 2, 2, 3, 4, 3],
+    [2, 3, 4, 3, 3, 4, 3, 2],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [2, 3, 4, 3, 3, 4, 3, 2],
+    [3, 4, 3, 2, 2, 3, 4, 3],
+    [4, 3, 2, 1, 1, 2, 3, 4]
+]
+
+ROOK_SCORE = [
+    [4, 3, 4, 4, 4, 4, 3, 4],
+    [4, 4, 4, 4, 4, 4, 4, 4],
+    [1, 1, 2, 3, 3, 2, 1, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 1, 2, 3, 3, 2, 1, 1],
+    [4, 4, 4, 4, 4, 4, 4, 4],
+    [4, 3, 4, 4, 4, 4, 3, 4]
+]
+
+QUEEN_SCORE = [
+    [4, 3, 2, 1, 1, 2, 3, 4],
+    [3, 4, 3, 2, 2, 3, 4, 3],
+    [2, 3, 4, 3, 3, 4, 3, 2],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [2, 3, 4, 3, 3, 4, 3, 2],
+    [3, 4, 3, 2, 2, 3, 4, 3],
+    [4, 3, 2, 1, 1, 2, 3, 4]
+]
+
+KING_SCORE = [
+    [4, 3, 2, 1, 1, 2, 3, 4],
+    [3, 4, 3, 2, 2, 3, 4, 3],
+    [2, 3, 4, 3, 3, 4, 3, 2],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [2, 3, 4, 3, 3, 4, 3, 2],
+    [3, 4, 3, 2, 2, 3, 4, 3],
+    [4, 3, 2, 1, 1, 2, 3, 4]
+]
+
+WHITE_PAWN_SCORE = [
+    [8, 8, 8, 8, 8, 8, 8, 8],
+    [8, 8, 8, 8, 8, 8, 8, 8],
+    [5, 6, 6, 7, 7, 6, 6, 5],
+    [2, 3, 3, 5, 5, 3, 3, 2],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 1, 2, 3, 3, 2, 1, 1],
+    [.5, .5, 1, 2, 2, 1, .5, .5],
+    [0, 0, 0, 0, 0, 0, 0, 0]
+]
+
+BLACK_PAWN_SCORE = [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [.5, .5, 1, 2, 2, 1, .5, .5],
+    [1, 1, 2, 3, 3, 2, 1, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [2, 3, 3, 5, 5, 3, 3, 2],
+    [5, 6, 6, 7, 7, 6, 6, 5],
+    [8, 8, 8, 8, 8, 8, 8, 8],
+    [8, 8, 8, 8, 8, 8, 8, 8]
+]
+
+PIECE_SCORE = {
+    'bN': KNIGHT_SCORE,
+    'wN': KNIGHT_SCORE,
+    'wB': BISHOP_SCORE,
+    'bB': BISHOP_SCORE,
+    'wR': ROOK_SCORE,
+    'bR': ROOK_SCORE,
+    'wQ': QUEEN_SCORE,
+    'bQ': QUEEN_SCORE,
+    'wK': KING_SCORE,
+    'bK': KING_SCORE,
+    'wp': WHITE_PAWN_SCORE,
+    'bp': BLACK_PAWN_SCORE
+}
+
 
 def _random_move(moves):
     return choice(moves)
@@ -30,12 +122,16 @@ MATERIAL = {
 def _eval_material(board):
     score = 0
 
-    for row in board:
-        for piece in row:
-            if piece[0] == 'w':
-                score += MATERIAL[piece[1]]
-            elif piece[0] == 'b':
-                score -= MATERIAL[piece[1]]
+    for row in range(len(board)):
+        for col in range(len(board[row])):
+            piece = board[row][col]
+            if piece != "--":
+                pos_score = PIECE_SCORE[piece][row][col] * .1
+
+                if piece[0] == 'w':
+                    score += MATERIAL[piece[1]] + pos_score
+                elif piece[0] == 'b':
+                    score -= (MATERIAL[piece[1]] + pos_score)
 
     return score
 
@@ -63,7 +159,7 @@ def _minmax(gs, valid_moves, depth, white_to_move):
     global next_move
 
     if depth == 0:
-        return _eval_board(gs)
+        return _eval_material(gs.board)
 
     if white_to_move:
         max_score = -CHECKMATE
@@ -96,7 +192,7 @@ def _negamax(gs, valid_moves, depth, white_to_move):
     global next_move
 
     if depth == 0:
-        return _eval_board(gs)
+        return _eval_material(gs.board)
 
     max_score = -CHECKMATE
 
@@ -117,7 +213,7 @@ def ab_negamax(gs, valid_moves, depth, white_to_move, alpha, beta):
     global next_move
 
     if depth == 0:
-        return _eval_board(gs)
+        return _eval_material(gs.board)
 
     max_score = -CHECKMATE
 
@@ -139,8 +235,8 @@ def ab_negamax(gs, valid_moves, depth, white_to_move, alpha, beta):
     return max_score
 
 
-def smart_move(gs, moves):
+def smart_move(gs, moves, return_queue):
     global next_move
     next_move = None
     _negamax(gs, moves, DEPTH, gs.white_to_move)
-    return next_move
+    return_queue.put(next_move)
