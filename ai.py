@@ -53,46 +53,7 @@ def _eval_board(gs):
     elif gs.stalemate:
         return STALEMATE
 
-    return _eval_material(gs.board)
-
-
-def _eval_move(move):
-    score = 0
-
-    for key, value in SPECIAL_MOVE.items():
-        if getattr(move, key):
-            score += value
-
-    if move.piece_captured != '--':
-        if move.piece_captured[1] == 'K':
-            score += CHECKMATE
-        else:
-            score += MATERIAL[move.piece_captured[1]]
-
-    if move.piece_moved != '--':
-        score -= MATERIAL[move.piece_moved[1]]
-
-    if move.is_pawn_promotion:
-        score += 10
-
-    return score
-
-
-def _score(gs, moves, white_to_move):
-    if gs.checkmate:
-        if gs.white_to_move:
-            return -CHECKMATE
-        else:
-            return CHECKMATE
-    elif gs.stalemate:
-        return STALEMATE
-
-    score = 0
-
-    for move in moves:
-        score += _eval_move(move)
-
-    return score if white_to_move else -score
+    return _eval_material(gs.board) + len(gs.get_valid_moves()) * 0.1
 
 
 global next_move
@@ -131,8 +92,29 @@ def _minmax(gs, valid_moves, depth, white_to_move):
         return min_score
 
 
+def _negamax(gs, valid_moves, depth, white_to_move):
+    global next_move
+
+    if depth == 0:
+        return _eval_board(gs)
+
+    max_score = -CHECKMATE
+
+    for move in valid_moves:
+        gs.make_move(move)
+        next_moves = gs.get_valid_moves()
+        score = -_negamax(gs, next_moves, depth - 1, not white_to_move)
+        if score > max_score:
+            max_score = score
+            if depth == DEPTH:
+                next_move = move
+        gs.undo_move()
+
+    return max_score
+
+
 def smart_move(gs, moves):
     global next_move
     next_move = None
-    _minmax(gs, moves, DEPTH, gs.white_to_move)
+    _negamax(gs, moves, DEPTH, gs.white_to_move)
     return next_move
