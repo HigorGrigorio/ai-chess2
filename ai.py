@@ -3,10 +3,15 @@
 # -----------------------------------------------------------------------------
 from random import choice
 
+import numpy as np
+
 # controls the depth of the search tree
 DEPTH = 4
 
-KNIGHT_SCORE = [
+CHECKMATE = float('inf')
+STALEMATE = 0
+
+KNIGHT_SCORE = np.array([
     [1, 1, 1, 1, 1, 1, 1, 1],
     [2, 2, 2, 2, 2, 2, 2, 1],
     [1, 2, 3, 3, 3, 3, 2, 1],
@@ -15,9 +20,9 @@ KNIGHT_SCORE = [
     [1, 2, 3, 3, 3, 3, 2, 1],
     [1, 2, 2, 2, 2, 2, 2, 1],
     [1, 1, 1, 1, 1, 1, 1, 1]
-]
+])
 
-BISHOP_SCORE = [
+BISHOP_SCORE = np.array([
     [4, 3, 2, 1, 1, 2, 3, 4],
     [3, 4, 3, 2, 2, 3, 4, 3],
     [2, 3, 4, 3, 3, 4, 3, 2],
@@ -26,9 +31,9 @@ BISHOP_SCORE = [
     [2, 3, 4, 3, 3, 4, 3, 2],
     [3, 4, 3, 2, 2, 3, 4, 3],
     [4, 3, 2, 1, 1, 2, 3, 4]
-]
+])
 
-ROOK_SCORE = [
+ROOK_SCORE = np.array([
     [4, 3, 4, 4, 4, 4, 3, 4],
     [4, 4, 4, 4, 4, 4, 4, 4],
     [1, 1, 2, 3, 3, 2, 1, 1],
@@ -37,9 +42,9 @@ ROOK_SCORE = [
     [1, 1, 2, 3, 3, 2, 1, 1],
     [4, 4, 4, 4, 4, 4, 4, 4],
     [4, 3, 4, 4, 4, 4, 3, 4]
-]
+])
 
-QUEEN_SCORE = [
+QUEEN_SCORE = np.array([
     [4, 3, 2, 1, 1, 2, 3, 4],
     [3, 4, 3, 2, 2, 3, 4, 3],
     [2, 3, 4, 3, 3, 4, 3, 2],
@@ -48,9 +53,9 @@ QUEEN_SCORE = [
     [2, 3, 4, 3, 3, 4, 3, 2],
     [3, 4, 3, 2, 2, 3, 4, 3],
     [4, 3, 2, 1, 1, 2, 3, 4]
-]
+])
 
-KING_SCORE = [
+KING_SCORE = np.array([
     [4, 3, 2, 1, 1, 2, 3, 4],
     [3, 4, 3, 2, 2, 3, 4, 3],
     [2, 3, 4, 3, 3, 4, 3, 2],
@@ -59,9 +64,9 @@ KING_SCORE = [
     [2, 3, 4, 3, 3, 4, 3, 2],
     [3, 4, 3, 2, 2, 3, 4, 3],
     [4, 3, 2, 1, 1, 2, 3, 4]
-]
+])
 
-WHITE_PAWN_SCORE = [
+WHITE_PAWN_SCORE = np.array([
     [8, 8, 8, 8, 8, 8, 8, 8],
     [8, 8, 8, 8, 8, 8, 8, 8],
     [5, 6, 6, 7, 7, 6, 6, 5],
@@ -70,9 +75,9 @@ WHITE_PAWN_SCORE = [
     [1, 1, 2, 3, 3, 2, 1, 1],
     [.5, .5, 1, 2, 2, 1, .5, .5],
     [0, 0, 0, 0, 0, 0, 0, 0]
-]
+])
 
-BLACK_PAWN_SCORE = [
+BLACK_PAWN_SCORE = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0],
     [.5, .5, 1, 2, 2, 1, .5, .5],
     [1, 1, 2, 3, 3, 2, 1, 1],
@@ -81,7 +86,7 @@ BLACK_PAWN_SCORE = [
     [5, 6, 6, 7, 7, 6, 6, 5],
     [8, 8, 8, 8, 8, 8, 8, 8],
     [8, 8, 8, 8, 8, 8, 8, 8]
-]
+])
 
 PIECE_SCORE = {
     'bN': KNIGHT_SCORE,
@@ -113,25 +118,31 @@ MATERIAL = {
 }
 
 
+def _get_score(square, x, y):
+    if square == '--':
+        return 0
+
+    color = square[0]
+    piece = square[1]
+
+    if color == 'w':
+        return MATERIAL[piece] + PIECE_SCORE[square][x, y]
+    else:
+        return -MATERIAL[piece] - PIECE_SCORE[square][x, y]
+
+
 def _eval_material(board):
-    score = 0
+    x_axis = np.where(board != '--')[0]
+    y_axis = np.where(board != '--')[1]
 
-    for row in range(len(board)):
-        for col in range(len(board[row])):
-            piece = board[row][col]
-            if piece != "--":
-                pos_score = PIECE_SCORE[piece][row][col] * .1
-
-                if piece[0] == 'w':
-                    score += MATERIAL[piece[1]] + pos_score
-                elif piece[0] == 'b':
-                    score -= (MATERIAL[piece[1]] + pos_score)
-
-    return score
-
-
-CHECKMATE = float('inf')
-STALEMATE = 0
+    return np.sum(np.vectorize(_get_score)(
+        # fiter only the pieces that are not empty
+        board[x_axis, y_axis],
+        # get the x axis
+        x_axis,
+        # get the y axis
+        y_axis
+    ))
 
 
 def _eval_board(gs):

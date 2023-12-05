@@ -1,11 +1,12 @@
 # -----------------------------------------------------------------------------
 # (C) 2023 Higor Grigorio (higorgrigorio@gmail.com)  (MIT License)
 # -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-# (C) 2023 Higor Grigorio (higorgrigorio@gmail.com)  (MIT License)
-# -----------------------------------------------------------------------------
+import numpy as np
+
 
 class GameState:
+    board: np.ndarray
+
     def __init__(self):
         # the default chessboard is a 8x8 board with the initial
         # chessboard configuration (see domain/chessboard.py). The
@@ -13,7 +14,7 @@ class GameState:
         # peace (W for white and B for black) and the second character
         # represents the type of the peace (R for rook, N for knight,
         # B for bishop, Q for queen, K for king and P for pawn).
-        self.board = [
+        self.board = np.array([
             ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
             ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
             ['--', '--', '--', '--', '--', '--', '--', '--'],
@@ -22,7 +23,7 @@ class GameState:
             ['--', '--', '--', '--', '--', '--', '--', '--'],
             ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
             ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
-        ]
+        ])
 
         # the white_to_move variable is a boolean that indicates if
         # the white player is the next to move
@@ -287,16 +288,14 @@ class GameState:
 
         return False
 
-    def _get_all_possible_moves(self):
-        moves = []
-        for r in range(len(self.board)):
-            for c in range(len(self.board[r])):
-                turn = self.board[r][c][0]
-                if (turn == 'w' and self.white_to_move) or (turn == 'b' and not self.white_to_move):
-                    piece = self.board[r][c][1]
-                    self.move_functions[piece](r, c, moves)
+    def _get_piece_moves(self, r, c):
+        self.move_functions[self.board[r][c][1]](r, c, self._all_moves)
 
-        return moves
+    def _get_all_possible_moves(self):
+        turn = 'w' if self.white_to_move else 'b'
+        self._all_moves = []
+        np.vectorize(self._get_piece_moves)(*np.where(np.vectorize(lambda x: x[0] == turn)(self.board)))
+        return self._all_moves
 
     def get_possible_pawn_promotions(self):
         return ['Q', 'R', 'B', 'N']
